@@ -144,3 +144,6 @@ class ESP32CamApp(App):
 
 if __name__ == '__main__':
     ESP32CamApp().run()
+
+
+# 强行唤醒服务器测试
