@@ -1,0 +1,39 @@
+name: Build Android APK
+
+on: [push]
+
+jobs:
+  build:
+    runs-on: ubuntu-20.04
+    steps:
+      - name: 获取仓库代码
+        uses: actions/checkout@v3
+
+      - name: 安装基础编译环境
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y python3-pip build-essential git python3 python3-dev ffmpeg libsdl2-dev libsdl2-image-dev libsdl2-mixer-dev libsdl2-ttf-dev libportmidi-dev libswscale-dev libavformat-dev libavcodec-dev zlib1g-dev libffi-dev
+          pip install buildozer cython==0.29.33
+
+      - name: 全自动配置与打包
+        run: |
+          # 1. 自动下载人脸识别模型
+          wget https://raw.githubusercontent.com/opencv/opencv/master/data/haarcascades/haarcascade_frontalface_default.xml
+          
+          # 2. 生成默认配置并自动修改里面的参数
+          yes | buildozer init || true
+          sed -i 's/title = My Application/title = ESP32Cam/' buildozer.spec
+          sed -i 's/package.name = myapp/package.name = espmonitor/' buildozer.spec
+          sed -i 's/package.domain = org.test/package.domain = org.myiot/' buildozer.spec
+          sed -i 's/source.include_exts = py,png,jpg,kv,atlas/source.include_exts = py,png,jpg,kv,atlas,ttc,xml/' buildozer.spec
+          sed -i 's/requirements = python3,kivy/requirements = python3,kivy,opencv,numpy/' buildozer.spec
+          sed -i 's/#android.permissions = INTERNET/android.permissions = INTERNET/' buildozer.spec
+          
+          # 3. 开始执行打包
+          buildozer -v android debug
+
+      - name: 提取生成的 APK 文件
+        uses: actions/upload-artifact@v3
+        with:
+          name: ESP32_App_APK
+          path: bin/*.apk
